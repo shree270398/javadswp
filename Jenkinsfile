@@ -57,14 +57,13 @@ pipeline {
         }
 
 
-        stage('Deploy to Docker Swarm') {
-            steps {
-                sh '''
-                docker service update \
-                --image $IMAGE_NAME:$IMAGE_TAG \
-                demo-backend
-                '''
-            }
-        }
+       stage('Deploy') {
+    steps {
+        sh '''
+        ssh vagrant@192.168.56.10 \
+        "docker service update --image shree270398/demo:v5 demo-backend"
+        '''
+    }
+}
     }
 }
