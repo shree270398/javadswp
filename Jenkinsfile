@@ -1,77 +1,70 @@
 pipeline {
+
     agent any
 
-    triggers {
-        cron('')
-    }
-
     environment {
-        IMAGE_NAME = "shree270398/devcidoc"
-        CONTAINER_NAME = "devcidoc-container"
+        IMAGE_NAME = "shree270398/demo"
+        IMAGE_TAG = "v5"
     }
 
     stages {
 
-        stage('Clone GitHub Repository') {
+        stage('Checkout') {
             steps {
                 git branch: 'main',
-                url: 'https://github.com/shree270398/devcidoc.git'
+                    url: 'https://github.com/shree270398/javadswp.git'
             }
         }
 
-        stage('Build Maven Project') {
+
+        stage('Maven Build') {
             steps {
-                sh 'mvn clean package'
+                sh 'mvn clean package -DskipTests'
             }
         }
 
-        stage('Build Docker Image') {
+
+        stage('Docker Build') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                sh '''
+                docker build -t $IMAGE_NAME:$IMAGE_TAG .
+                '''
             }
         }
 
-        stage('Docker Hub Login') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
 
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+        stage('Docker Login & Push') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
+
+                    sh '''
+                    echo $DOCKER_PASS | docker login \
+                    -u $DOCKER_USER \
+                    --password-stdin
+
+                    docker push $IMAGE_NAME:$IMAGE_TAG
+
+                    docker logout
+                    '''
                 }
             }
         }
 
-        stage('Push Docker Image') {
+
+        stage('Deploy to Docker Swarm') {
             steps {
-                sh 'docker push $IMAGE_NAME'
+                sh '''
+                docker service update \
+                --image $IMAGE_NAME:$IMAGE_TAG \
+                demo-backend
+                '''
             }
-        }
-
-        stage('Stop Old Container') {
-            steps {
-                sh 'docker stop $CONTAINER_NAME || true'
-                sh 'docker rm $CONTAINER_NAME || true'
-            }
-        }
-
-        stage('Run Docker Container') {
-            steps {
-                sh 'docker run -d --name $CONTAINER_NAME $IMAGE_NAME'
-            }
-        }
-    }
-
-    post {
-
-        success {
-            echo 'CI/CD Pipeline Executed Successfully!'
-        }
-
-        failure {
-            echo 'Pipeline Failed!'
         }
     }
 }
