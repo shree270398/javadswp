@@ -57,11 +57,13 @@ pipeline {
         }
 
 
-       stage('Deploy') {
+    stage('Deploy') {
     steps {
         sh '''
-        ssh vagrant@192.168.56.10 \
-        "docker service update --image shree270398/demo:v5 demo-backend"
+        ssh -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            vagrant@192.168.56.10 \
+            "docker service update --image shree270398/demo:v5 demo-backend"
         '''
     }
 }
