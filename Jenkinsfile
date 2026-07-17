@@ -57,16 +57,16 @@ pipeline {
         }
 
 
-    stage('Deploy') {
+    stage('Deploy to Swarm') {
     steps {
-        sh '''
-        ssh \
-        -i /home/shree/exam2/.vagrant/machines/manager/virtualbox/private_key \
-        -p 2222 \
-        -o StrictHostKeyChecking=no \
-        vagrant@127.0.0.1 \
-        "docker service update --image shree270398/demo:v5 demo-backend"
-        '''
+        sshagent(credentials: ['vagrant-ssh']) {
+            sh '''
+            ssh -p 2222 \
+                -o StrictHostKeyChecking=no \
+                vagrant@127.0.0.1 \
+                "docker service update --image shree270398/demo:v5 demo-backend"
+            '''
+        }
     }
 }
     }
